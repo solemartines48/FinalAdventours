@@ -1,0 +1,128 @@
+{% extends "travel/layout.html" %}
+
+{% block body %}
+<div class="container mt-5">
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            {% if messages %}
+            {% for message in messages %}
+            <div class="alert {% if message.tags == 'error' %}alert-danger{% elif message.tags == 'warning' %}alert-warning{% else %}alert-success{% endif %}"
+                role="alert">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+
+            <h2 class="mb-4 text-center font-weight-bold text-info">Registro de Venta</h2>
+            <form method="post" class="needs-validation" novalidate>
+                {% csrf_token %}
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="departure_date">Fecha de Salida:</label>
+                        {{ form.departure_date }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="arrival_date">Fecha de Llegada:</label>
+                        {{ form.arrival_date }}
+                        <p id="date_error" class="text-danger"></p>
+                    </div>
+                </div>                
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="passenger">Pasajero:</label>
+                        {{ form.passenger }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="trip">Viaje:</label>
+                        {{ form.trip }}
+                    </div>
+                </div>
+    
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="price">Precio:</label>
+                        {{ form.price }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="payment_method">Método de Pago:</label>
+                        {{ form.payment_method }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="installments">Número de Cuotas:</label>
+                        {{ form.installments }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="total_debt">Deuda Total:</label>
+                        {{ form.total_debt }}
+                    </div>
+                </div>
+                <div class="row mb-3">
+                    <div class="col-md-6">
+                        <label for="sale_status">Estado de Venta:</label>
+                        {{ form.sale_status }}
+                    </div>
+                    <div class="col-md-6">
+                        <label for="total_days">Total de Días:</label>
+                        <input type="text" class="form-control rounded-pill" id="total_days" readonly>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-info rounded-pill">Registrar Venta</button>
+            </form>
+        </div>
+    </div>
+</div>
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<script>
+    function calcularDias() {
+        const arrivalDate = new Date(document.getElementById('id_arrival_date').value);
+        const departureDate = new Date(document.getElementById('id_departure_date').value);
+        const diffTime = Math.abs(departureDate - arrivalDate);
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays;
+    }
+
+    function actualizarDatos() {
+        const totalDays = calcularDias();
+        const totalDaysField = document.getElementById('total_days');
+        totalDaysField.value = isNaN(totalDays) ? '' : totalDays;
+    }
+    document.getElementById('id_arrival_date').addEventListener('change', actualizarDatos);
+    document.getElementById('id_departure_date').addEventListener('change', actualizarDatos);
+
+    $(document).ready(function() {
+        $('#id_trip').change(function() {
+            var tripId = $(this).val();
+            $.ajax({
+                url: '/get_trip_price/' + tripId + '/',
+                type: 'GET',
+                success: function(data) {
+                    $('#id_price').val(data.price);
+                    var days = calcularDias();
+                    var totalPrice = parseFloat(data.price) * days;
+                    console.log(totalPrice)
+                    $('#id_total_debt').val(totalPrice.toFixed(2));
+                },
+                error: function() {
+                    console.error('Error al obtener el precio del viaje');
+                }
+            });
+        });
+    });
+
+    $(document).ready(function() {
+    $('#id_arrival_date, #id_departure_date').change(function() {
+        const arrivalDate = new Date($('#id_arrival_date').val());
+        const departureDate = new Date($('#id_departure_date').val());
+        if (arrivalDate <= departureDate) {
+            $('#date_error').text('La fecha de llegada debe ser posterior a la fecha de salida');
+        } else {
+            $('#date_error').text('');
+        }
+    });
+});
+
+</script>
+{% endblock %}
